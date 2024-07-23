@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Weather Forecast App</title>
+  <style>
+    body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.search {
+  margin-bottom: 20px;
+}
+
+#city-input {
+  padding: 10px;
+  width: 200px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+button {
+  padding: 10px;
+  border: none;
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 5px;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.weather-info,
+.forecast {
+  margin-top: 20px;
+}
+
+.weather-card,
+.forecast-card {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.weather-card img,
+.forecast-card img {
+  width: 50px;
+  height: 50px;
+}
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Weather Forecast</h1>
+    <div class="search">
+      <input type="text" id="city-input" placeholder="Enter city name">
+      <button onclick="getWeather()">Get Weather</button>
+      <button onclick="getWeatherByLocation()">Use My Location</button>
+    </div>
+    <div class="weather-info" id="weather-info">
+      <!-- Weather info will be displayed here -->
+    </div>
+    <div class="forecast" id="forecast">
+      <!-- Hourly forecast will be displayed here -->
+    </div>
+  </div>
+  <script>
+    const apiKey = 'YOUR_API_KEY'; // OpenWeatherMap API key, if needed
+const geoApiKey = 'YOUR_GEOCODING_API_KEY'; // Geocoding API key
+
+async function getWeather() {
+  const city = document.getElementById('city-input').value;
+  const geocodeUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${geoApiKey}`;
+
+  try {
+    const geocodeResponse = await fetch(geocodeUrl);
+    if (!geocodeResponse.ok) throw new Error('City not found');
+
+    const geocodeData = await geocodeResponse.json();
+    const { lat, lon } = geocodeData[0];
+    fetchWeatherData(lat, lon);
+  } catch (error) {
+    document.getElementById('weather-info').innerHTML = `<p>${error.message}</p>`;
+  }
+}
+
+async function getWeatherByLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const { latitude, longitude } = position.coords;
+      fetchWeatherData(latitude, longitude);
+    });
+  } else {
+    alert('Geolocation is not supported by this browser.');
+  }
+}
+
+async function fetchWeatherData(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Weather data not available');
+
+    const data = await response.json();
+    displayWeather(data.current_weather);
+    displayForecast(data.hourly);
+  } catch (error) {
+    document.getElementById('weather-info').innerHTML = `<p>${error.message}</p>`;
+  }
+}
+
+function displayWeather(data) {
+  const weatherInfo = `
+    <div class="weather-card">
+      <h2>Current Weather</h2>
+      <p>Temperature: ${data.temperature_2m}°C</p>
+      <p>Wind Speed: ${data.wind_speed_10m} m/s</p>
+    </div>
+  `;
+  document.getElementById('weather-info').innerHTML = weatherInfo;
+}
+
+function displayForecast(data) {
+  let forecastHTML = '<h2>Hourly Forecast</h2>';
+  for (let i = 0; i < data.time.length; i += 3) {
+    forecastHTML += `
+      <div class="forecast-card">
+        <h3>${new Date(data.time[i]).toLocaleTimeString()}</h3>
+        <p>Temperature: ${data.temperature_2m[i]}°C</p>
+        <p>Humidity: ${data.relative_humidity_2m[i]}%</p>
+        <p>Wind Speed: ${data.wind_speed_10m[i]} m/s</p>
+      </div>
+    `;
+  }
+  document.getElementById('forecast').innerHTML = forecastHTML;
+}
+
+  </script>
+</body>
+</html>
